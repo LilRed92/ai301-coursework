@@ -110,41 +110,64 @@ jobs:
             local body
             local groq_model="openai/gpt-oss-120b"
             local request_body
+            local groq_diff
 
-            request_body=$(jq -n \
-              --arg system "$SYSTEM_PROMPT" \
-              --arg diff "$DIFF" \
-              --arg model "$groq_model" \
-              '{
-                model: $model,
-                messages: [
-                  {role: "system", content: $system},
-                  {role: "user", content: ("\n\nHere is the diff to analyze:\n" + $diff)}
-                ]
-              }')
+            # Groq currently has an 8K TPM limit.
+            # Keep the fallback request comfortably below that limit.
+            # Gemini still receives the complete diff.
+            groq_diff="$DIFF"
+          
+            if [ "${#groq_diff}" -gt 24000 ]; then
+              echo "Diff is large; truncating Groq fallback input."
+              groq_diff="${groq_diff:0:24000}"
+              groq_diff="$groq_diff
 
-            response=$(curl -sS -w $'\n%{http_code}' -X POST \
-              "https://api.groq.com/openai/v1/chat/completions" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer ${GROQ_API_KEY}" \
-              -d "$request_body") || response=$'\n000'
-
-            http_code="${response##*$'\n'}"
-            body="${response%$'\n'*}"
-
-            if [ "$http_code" = "200" ]; then
-              PR_DESCRIPTION=$(jq -r '.choices[0].message.content // empty' <<< "$body")
-              if [ -n "$PR_DESCRIPTION" ]; then
-                echo "PR description generated with Groq fallback (${groq_model})."
-                return 0
-              fi
+          [Diff truncated for Groq fallback due to provider token limits.]"
             fi
 
-            echo "Groq fallback failed with HTTP ${http_code}."
-            echo "Groq response: $body"
-            return 1
-          }
+          request_body=$(jq -n \
+            --arg system "$SYSTEM_PROMPT" \
+            --arg diff "$groq_diff" \
+            --arg model "$groq_model" \
+            '{
+              model: $model,
+              messages: [
+                {
+                  role: "system",
+                  content: $system
+                },
+                {
+                  role: "user",
+                  content: ("\n\nHere is the diff to analyze:\n" + $diff)
+                }
+              ],
+              max_completion_tokens: 1200,
+              reasoning_effort: "low"
+            }')
+        
+          response=$(curl -sS -w $'\n%{http_code}' -X POST \
+            "https://api.groq.com/openai/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${GROQ_API_KEY}" \
+            -d "$request_body") || response=$'\n000'
 
+          http_code="${response##*$'\n'}"
+          body="${response%$'\n'*}"
+        
+          if [ "$http_code" = "200" ]; then
+            PR_DESCRIPTION=$(jq -r '.choices[0].message.content // empty' <<< "$body")
+        
+            if [ -n "$PR_DESCRIPTION" ]; then
+              echo "PR description generated with Groq fallback (${groq_model})."
+              return 0
+            fi
+          fi
+        
+          echo "Groq fallback failed with HTTP ${http_code}."
+          echo "Groq response: $body"
+          return 1
+          }
+        
           if ! call_gemini; then
             echo "Gemini unavailable. Falling back to Groq..."
             if ! call_groq; then
