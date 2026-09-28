@@ -78,3 +78,5 @@ jobs:
           # 5. Save to a temporary file and push the update to the PR
           echo "$PR_DESCRIPTION" > pr-description.md
           gh pr edit ${{ github.event.pull_request.number }} --body-file pr-description.md
+
+          # force register workflow
