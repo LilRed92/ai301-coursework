@@ -15,17 +15,11 @@ label is not graded.
 
 **GitHub username**
 
-[Your GitHub username, exactly as it appears on your profile - no @, no
-profile URL. Your comment upstream is identified by this name, and it is
-the only thing that ties it to you. Several students may plan the same
-house issue, so this is what keeps their comments off your score and
-yours off theirs.]
+LilRed92
 
 **Plan comment**
 
-[Link to the comment where you posted your plan on the issue. Use the comment's own
-permalink. **Then paste the text of that comment underneath the link** — the pasted text is
-what this field is graded on, so copy across what you actually posted.]
+PENDING: will be added later.
 
 ---
 
@@ -33,15 +27,11 @@ what this field is graded on, so copy across what you actually posted.]
 
 **Branch**
 
-[The name of the branch you built the change on, exactly as it appears in your fork. The
-naming shape is a type prefix, then the issue number, then a short description. **The issue
-number in the branch name must be the number of the issue you claimed** — a name carrying
-any other number does not satisfy this field.]
+fix/56-structural-chunker-no-headings
 
 **Evidence**
 
-[Your Unit 2 reproduction steps re-run against the built change: the before, then the
-after. Paste both, including the commands you ran and their output.]
+PENDING: will be added later.
 
 ## Eval iterations
 
@@ -50,28 +40,28 @@ fields.
 
 **Run history**
 
-[The agreement score of each run you did, in order. A single run is a complete answer if
-only one run occurred. **The last score in your list must match the agreement line in the
-`eval-run.txt` you committed** — that file is the record of your final run.]
+1. Partial run, 6 packages (pkg-04, pkg-20, pkg-07, pkg-15, pkg-17, pkg-09): 6/6.
+2. Full run, 20 packages: 19/20 (`agreement: 19/20 scored items  (bar: 18/20: PASS)`), saved to `eval-run.txt`.
 
 **Package analysis**
 
-[Pick one scored package (`pkg-01` through `pkg-20` — the four `calib-` packages are never
-scored). Name it by id, say what your rubric decided and what the gold label said, and
-explain why your rubric read it that way.]
+`pkg-14` (zellij-org/zellij#5174). The gold label is accept; my rubric decided reject, and the run's note column said `failed: executable`.
+
+The plan's diagnosis, scope and test plan all passed. The failure came from its Files line: "exact functions to be pinned in the PR after tracing the query issuance with debug logs". The plan names an area (the client attach path in `zellij-server` and `zellij-client`'s terminal query issuance) and one chosen approach (consume pending OSC color query responses in the reattach handshake), but it defers the specific function to build time. My "executable" check passes only if the plan "names the specific file, function or module it will change", and it fails if "a core decision is deferred to build time". Naming the exact function was the part deferred, so the check read it as a fail.
+
+I think the gold label is defensible: the plan is bounded, has a decisive test and states its risk, and a contributor could start by tracing the debug output as it describes. The staff note calls it "arguable on the deferral, ready as scoped". My check cannot tell a deferred function name from a deferred decision, and I did not change it.
 
 **Check rationale**
 
-[Quote one check from the `rubric.md` you uploaded to `tools/plan-check/`, exactly as it reads now.
-Then say why it reads that way — what you revised to get there, or what you rejected in
-favour of it.]
+The "executable" row, exactly as it reads in `tools/plan-check/rubric.md`:
+
+> | executable | the plan's named files, functions or modules, and its approach or ordered changes. | pass if the plan names the specific file, function or module it will change and states one chosen approach, so a stranger could start without asking the author. fail if the location is vague ("somewhere", "upstream or vendored, whichever is easier"), if the approach is an investigation with no chosen fix, if a core decision is deferred to build time, or if no file or area is named. | required |
+
+It reads that way because the unbuildable packages (pkg-10, pkg-17, pkg-18) fail for the same reasons the fail clause lists: no files, no chosen approach, and decisions pushed to build time ("whichever is easier" is quoted from pkg-18). I wrote the pass condition around two outcomes a reader can verify, a named location and one chosen approach, instead of how detailed the plan looks, so two graders would agree. I kept it `required` because a plan nobody can start is not ready to post. I did not revise this row after the full run, even though it cost pkg-14.
 
 **Trade-offs**
 
-[Every check gives something up. Any one of these is a complete answer: a package whose
-result it changes, a canary you re-ran with `--only`, a case you accept it will miss, or a
-stated reason nothing changed elsewhere. "Nothing changed, and here is how I know" earns
-the point in full when the reason follows.]
+The "executable" check gives up plans that name the right area and approach but defer the exact function, which is pkg-14, so it changes that package's result (gold accept, mine reject). I accept that miss. Loosening it to allow "an area and one chosen approach" would let pkg-14 through, but it would also move the line for pkg-10, pkg-17 and pkg-18, whose gold notes describe vague or deferred decisions, and a single full run is the only way to see which way those would flip. The run was already 19/20 with every category matched, so I changed nothing after it. I did not re-run any canaries with `--only`, because I made no loosening change that needed one. The files in `eval-run.txt` match the files in `tools/plan-check/` (same hashes in the run header), which is how I know the run describes the rubric I uploaded.
 
 ---
 
