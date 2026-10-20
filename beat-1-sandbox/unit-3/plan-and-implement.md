@@ -19,7 +19,23 @@ LilRed92
 
 **Plan comment**
 
-PENDING: will be added later.
+https://github.com/codepath/pathreview-ai301-fa26-s1/issues/56#issuecomment-6262649663
+
+Posted text:
+
+> Plan for #56, building on my reproduction above. I ran it on an earlier checkout (`5963b35`); `_extract_sections` is the same on current `main` (`f89c06f`), and I am re-running it there before building.
+>
+> **Cause:** in `_extract_sections` (`ingestion/chunking/structural_chunker.py`, line 120 on `main`), content lines are only collected once a heading has been seen. A document with no headings collects nothing, so `chunk()` returns `[]`. My control run (same text with one leading `# Title`) returned 1 chunk, and `test_document_with_no_headings` fails with `assert 0 >= 1`, so the trigger is the missing heading.
+>
+> **Change:** if no heading sections are found and the text is not blank, `_extract_sections` returns the whole document as one section (empty path, level 0). `chunk()` already handles that section and already sub-chunks anything over the token limit. One function, plus tests: I will remove the strict `xfail` marker on `test_document_with_no_headings` (otherwise the fix makes it fail) and add one regression test for the long-document path.
+>
+> **Not in this change:** text before the first heading in a document that does have headings. It looks like the same condition drops it, but I did not test it, so I'd treat it as a separate issue.
+>
+> **Test:** re-run my repro command (expect `1`, was `0`), the heading control (expect `1`), `test_document_with_no_headings` (expect pass), then the full `test_structural_chunker.py` file.
+>
+> **Open question:** the fallback chunks get an empty `heading_path`. Inside this repo nothing outside the chunker reads it, but I have not checked consumers elsewhere. If you would prefer the fallback in `chunk()` rather than `_extract_sections`, say so.
+>
+> Note: I used an AI assistant to help draft this plan. I ran the reproduction and read the code myself, and I understand what I am proposing.
 
 ---
 
@@ -31,7 +47,20 @@ fix/56-structural-chunker-no-headings
 
 **Evidence**
 
-PENDING: will be added later.
+Branch `fix/56-structural-chunker-no-headings` in my fork, base `f89c06f`, Python 3.12.15, pytest 9.1.1. Same script and same test file run twice: once on the unmodified base (fix stashed), once with the fix applied. Captured with `week-4/ev.sh before` and `ev.sh after` on 2026-10-19.
+
+| Check | Before (no fix) | After (fix) |
+|---|---|---|
+| Headingless text, short (`StructuralChunker().chunk`) | 0 chunks | 1 chunk |
+| Headingless text, long (sub-chunked past the token limit) | 0 chunks | 4 chunks |
+| Control, same text with a leading `# Title` | 1 chunk | 1 chunk |
+| `test_document_with_no_headings` | XFAIL | PASSED |
+| `test_long_document_with_no_headings_is_not_dropped` | not present | PASSED |
+| `tests/unit/test_structural_chunker.py` | 14 passed, 1 xfailed (15 tests) | 16 passed |
+
+The control stays at 1 chunk in both runs, so the change affects only documents with no headings. The pre-fix xfail reason reads: `issue #56: structural chunker drops documents with no headings`.
+
+Plan-check on the plan and the posted comment returned `accept`, with all 7 checks passing.
 
 ## Eval iterations
 
