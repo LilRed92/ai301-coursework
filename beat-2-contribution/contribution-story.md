@@ -55,10 +55,9 @@ happened; these entries are the toolkit's own timeline.
 All four entries are graded. Keep every heading below, and fill each
 one in the week it belongs to.
 
-**Unit 5: [one line on the tool work]**
+**Unit 5: Built a six-query search strategy, scanned GitHub with issue-scout, and tuned the scout and my fit profile from the results**
 
-[2-4 sentences: what you built (the scout, your strategy), what broke
-or fell short, what changed because of it.]
+I built six `gh search issues` queries and a set of ranking filters from the fit profile I wrote before this unit, then updated that profile to state my skill levels (proficient in PERN/MERN, barely past beginner in Python, new to Rust, TypeScript, Tailwind and Web3, including beginner smart-contract work) and removed a sentence that contradicted my learning goals. The first scans let sprawling features and brand-new repos through, so I limited `scope-small-impact` to 3 files and added the preferred checks `outside-prs-answered`, `setup-doable`, `repo-established` and `newcomer-friendly`. In the strategy I capped results at one issue per repo, gave each query its own slot and raised the graded count to 6, dropped epic, tracking, umbrella, meta and roadmap issues, switched the JavaScript query to `react` with `help wanted` because I am proficient there, required `rust` in the Rust query's title or body, and added a Web3 query on `blockchain` after `web3` returned a legal glossary and a job post. The rerun still spent two of six slots on a Renovate dashboard and a parent issue, and the Tailwind and Web3 queries returned mostly large items, so I added a `dashboard` title drop and a bot-author filter, which I chose not to test with another practice scan.
 
 **Unit 6: [one line on the tool work]**
 
