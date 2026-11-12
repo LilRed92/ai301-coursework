@@ -221,9 +221,9 @@ Added the 8 getters to `TaskData` in `src/task/data.rs`, plus a crate-private `g
 
 Added a read-only `impl Deref<Target = TaskData> for Task` with no `DerefMut`, deleted `Task`'s 8 getters, and made `Task::get_timestamp` call `self.data.get_timestamp(property)`. I added the `test_deref_to_task_data` test, which checks that a `Task` derefs to its `TaskData` and that `get_description` works through it. `cargo test` gives 442 passed, 0 failed, which is the 438 baseline plus the 3 getter tests and the deref test. `cargo fmt --check`, clippy with `-D warnings` and the nightly rustdoc check are clean. `cargo semver-checks` failed with `inherent_method_missing`, listing 7 removed `Task` methods: `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_modified` and `get_due`. `get_scheduled` was not flagged, so it was not public in the 3.1.0 baseline. This is the case my plan covers, so the next step is thin `Task` wrappers that call through to `TaskData`.
 
-**[Date]**
+**2026-11-12**
 
-[Entry]
+Added thin `Task` wrappers that call through to `TaskData` for the 7 methods `cargo semver-checks` flagged: `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_modified` and `get_due`. I kept the doc comments the originals had. I did not add one for `get_scheduled`, because the check did not flag it. Re-running all five checks gives 442 passed in `cargo test`, and `cargo fmt --check`, clippy, the nightly rustdoc check and `cargo semver-checks` are clean (229 pass, 31 skip, no semver update required).
 
 **Toolkit**
 
