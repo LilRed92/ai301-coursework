@@ -217,6 +217,10 @@ built, decisions you made when you made them, wrong turns included.]
 
 Added the 8 getters to `TaskData` in `src/task/data.rs`, plus a crate-private `get_timestamp` that they share, and made `enum Prop` `pub(super)` in `src/task/task.rs` so `data.rs` can use the key names. I copied the bodies and doc comments from `Task` as they are. Four of the `Task` getters (`get_status`, `get_description`, `get_entry`, `get_priority`) have no doc comment, so I wrote one-line comments for them in the same style as the other methods in `data.rs`. I left `Task` untouched in this step, so nothing can break yet. The three tests from my first commit now compile and pass (13 passed in `task::data`), and the full `cargo test` gives 441 passed, 0 failed, which is the 438 baseline plus the 3 getter tests. `cargo fmt --check` and clippy with `-D warnings` are clean.
 
+**2026-11-12**
+
+Added a read-only `impl Deref<Target = TaskData> for Task` with no `DerefMut`, deleted `Task`'s 8 getters, and made `Task::get_timestamp` call `self.data.get_timestamp(property)`. I added the `test_deref_to_task_data` test, which checks that a `Task` derefs to its `TaskData` and that `get_description` works through it. `cargo test` gives 442 passed, 0 failed, which is the 438 baseline plus the 3 getter tests and the deref test. `cargo fmt --check`, clippy with `-D warnings` and the nightly rustdoc check are clean. `cargo semver-checks` failed with `inherent_method_missing`, listing 7 removed `Task` methods: `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_modified` and `get_due`. `get_scheduled` was not flagged, so it was not public in the 3.1.0 baseline. This is the case my plan covers, so the next step is thin `Task` wrappers that call through to `TaskData`.
+
 **[Date]**
 
 [Entry]
