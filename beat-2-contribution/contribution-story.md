@@ -11,7 +11,7 @@ files and no evidence uploads are part of Assignment 5.
 **Student:** Kacie Dearman
 **GitHub Username:** LilRed92
 **Issue:** https://github.com/GothenburgBitFactory/taskchampion/issues/613
-**Pull Request:** [GitHub PR link, once opened]
+**Pull Request:** https://github.com/GothenburgBitFactory/taskchampion/pull/796
 
 One repository, built across units 5 to 8, telling the whole story of your real
 contribution. Fill it as you work, not at the end — the sections below ask for evidence that
@@ -63,10 +63,9 @@ I built six `gh search issues` queries and a set of ranking filters from the fit
 
 I installed the voice-guard hook, merged the four upstream rules into my voice guide (reworded so they fit any issue in any repo), and confirmed the hook fires: `gh issue comment --help` was blocked, which is the pass. My first check of the claim draft stopped on the rule against "tested locally" with no command or output, so I rewrote it to name the commit and the result (438 passed, 0 failed), after which it passed (guard log: stop at 2:29, pass at 2:38 on 2026-11-07). I also wrote a roughly 40-line `CLAUDE.local.md` for my taskchampion clone, with the CONTRIBUTING.md rules, the Task and TaskData files behind #613, the build and test commands, and "no AI policy stated". The repo ships no CLAUDE.md or AGENTS.md, so I dropped the import line, and I kept the file out of the PR with `.git/info/exclude`. The comment I already posted on #613 predates the guard and still used the old "ran the test suite" wording, which the guard would block, so I edited that claim comment. I have only run the guard manually on drafts so far, so I have not yet seen it stop a real post.
 
-**Unit 7: [one line on the tool work]**
+**Unit 7: Wrote a gate manifest, passed the ship-gate on my real branch and opened PR 796**
 
-[2-4 sentences: the ship-gate and your gate manifest. What it produced
-on your real branch, what fought you, what changed because of it.]
+I wrote a `ship-manifest.md` with the five checks taken from the upstream CI workflows, and the ship-gate ran them on my branch, then ran `pr-precheck` in live mode. It passed on the run I pasted, with all five checks ok and all eight `pr-precheck` checks passing. The earlier semver failure is what led to the thin `Task` wrappers, and I amended and force-pushed the wrapper commit before opening the PR. The gate could not catch the Formatting failure that showed up in upstream CI on `src/server/cloud/mod.rs`, because that file is not in my diff and my local `cargo fmt --check` passes.
 
 **Unit 8: [one line on the tool work]**
 
@@ -194,24 +193,28 @@ Deviation, recorded before building: I first thought both the getters and the se
 
 ## Testing Strategy
 
-[What observable checks prove the fix: your reproduction steps re-run
-against the built change (before and after), and the repo's own test
-suite or checks with the outcome shown. "Tests pass" with nothing
-observable named is not a strategy.]
+**Before and after.** My reproduction is the three getter tests in `src/task/data.rs` (`getters_defaults`, `getters_values` and `getters_invalid_timestamp`). On commit `660140c1f`, which holds only the tests, `cargo test --lib task::data` fails to compile with 21 `E0599` errors, because `TaskData` has no `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_scheduled`, `get_due` or `get_modified`. On the branch head the same command gives 13 passed, 0 failed.
+
+**The repo's own checks.** I ran the five checks the upstream CI runs, all locally, on the branch head:
+
+- `cargo test`: 442 passed, 0 failed. That is the 438 baseline plus my 3 getter tests and the `test_deref_to_task_data` test.
+- `cargo fmt --check`: clean.
+- `cargo clippy --all-features --no-deps -- -D warnings`: clean.
+- `cargo +nightly rustdoc -p taskchampion --all-features -- -Z unstable-options --check -Dwarnings`: clean.
+- `cargo semver-checks --default-features --features sync,storage,storage-indexeddb`: 229 pass, 31 skip, no semver update required.
+
+**What the checks caught.** `cargo semver-checks` failed after I deleted `Task`'s getters, with `inherent_method_missing` for 7 methods. That is why the branch has thin `Task` wrappers. The raw before and after output is in `test_evidence.md`, which I kept out of the commits.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: I used Claude Code to run the five checks and to record the before and after output.
+- What it produced: The 21 `E0599` errors before the fix, and 442 passed with clean fmt, clippy, rustdoc and semver checks after it.
+- Difficulties: The semver check failed in the middle of the work, so one passing run was not enough. I needed the failing run and the passing run both on record. Also, a stricter clippy run with `--all-targets` fails on files I did not touch (`src/server/cloud/aws.rs`, `src/storage/test.rs` and `src/task/time.rs`). That is not one of the CI checks, so I used the CI form.
+- What changed: The failing semver run led to the thin `Task` wrappers, and I re-ran all five checks after adding them.
 
 ---
 
 ## Implementation Notes
-
-[A running log, added to as you work. Date each entry. What you
-built, decisions you made when you made them, wrong turns included.]
 
 **2026-11-12**
 
@@ -223,40 +226,37 @@ Added a read-only `impl Deref<Target = TaskData> for Task` with no `DerefMut`, d
 
 **2026-11-12**
 
-Added thin `Task` wrappers that call through to `TaskData` for the 7 methods `cargo semver-checks` flagged: `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_modified` and `get_due`. I kept the doc comments the originals had. I did not add one for `get_scheduled`, because the check did not flag it. Re-running all five checks gives 442 passed in `cargo test`, and `cargo fmt --check`, clippy, the nightly rustdoc check and `cargo semver-checks` are clean (229 pass, 31 skip, no semver update required).
+Added thin `Task` wrappers that call through to `TaskData` for the 7 methods `cargo semver-checks` flagged: `get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_modified` and `get_due`. I kept the doc comments the originals had. I also added a wrapper for `get_scheduled`, even though the check did not flag it, so that all 8 getters behave the same way on `Task`. Re-running all five checks gives 442 passed in `cargo test`, and `cargo fmt --check`, clippy, the nightly rustdoc check and `cargo semver-checks` are clean (229 pass, 31 skip, no semver update required). I amended the wrapper commit to include the `get_scheduled` wrapper and reworded its message, then force-pushed with `--force-with-lease` because no PR was open yet.
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: Before each commit I used Claude Code to check that all of the getters, the `Deref` impl and the wrappers in `src/task/data.rs` and `src/task/task.rs` were written correctly.
+- What it produced: Three commits plus the amend, each checked with the five checks before I committed it.
+- Difficulties: Admittedly, I usually use AI to create my commit messages. Typically they're spot on, but for this project they were not. One described changes that did not happen and the wrapper commit message called the wrappers new getters. I ended up going back and amending two commit messages to fix before opening the PR.
+- What changed: I rewrote the wrapper commit message to explain the semver reason, and amended and force-pushed the branch before opening the PR.
 
 ---
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when opened]
+**PR Link:** https://github.com/GothenburgBitFactory/taskchampion/pull/796
 
-**PR Description:** [what the PR says; much of the content above
-adapts into it]
+**PR Description:** The PR is titled "Add simple property getters to TaskData" and closes #613. It moves the 8 getters (`get_status`, `get_description`, `get_entry`, `get_priority`, `get_wait`, `get_scheduled`, `get_due` and `get_modified`) onto `TaskData`, adds a read-only `Deref<Target = TaskData>` for `Task`, and deletes `Task`'s copies. The setters stay on `Task`, as the maintainer agreed. `cargo semver-checks` flagged 7 removed `Task` methods, so the PR keeps thin `Task` wrappers for them, plus one for `get_scheduled` so all 8 match. The description shows the 21 `E0599` errors before, 13 passed in `task::data` after, and the five checks (442 passed in `cargo test`, 229 pass and 31 skip in `cargo semver-checks`). It also has an "AI help" section.
 
 **Maintainer Feedback:**
 
-- [Date]: [feedback received, or "none yet"; silence is a normal
-  state and costs you nothing]
-- [Date]: [how you addressed it]
+- 2026-11-13: None yet.
 
-**Status:** [Awaiting review / Iterating / Merged / Closed. The
-status is a fact you record, never a grade: the PR is graded as
-opened.]
+**CI:** Every check passes except Formatting. That job fails on `src/server/cloud/mod.rs`, a file my PR does not touch, and `cargo fmt --check` passes locally. The fmt job runs on `stable`, and I think a newer rustfmt than mine changed how it wants block comments laid out, but I have not confirmed that.
+
+**Status:** Awaiting review
 
 **Toolkit**
 
-- Tool:
-- What it produced:
-- Difficulties:
-- What changed:
+- Tool: I used the ship-gate and my gate manifest to check the branch, then opened the PR through Claude Code with `gh pr create` and `pr_draft.md`.
+- What it produced: A `PASS`. The five repo checks ran (`cargo test`, `cargo fmt --check`, clippy, the nightly rustdoc check and `cargo semver-checks`), and `pr-precheck` passed all eight of its checks against my diff and description.
+- Difficulties: The first line of `pr_draft.md` was the PR title, so it was repeated at the top of the description. Claude pointed that out when I ran the command to create the PR. After the PR opened, the upstream Formatting check failed on a file I did not touch, which the local gate could not catch because my toolchain differs from the one in CI.
+- What changed: I deleted the title line from the description through GitHub after the PR was created. Nothing changed in the code. I recorded the CI result here instead of changing `mod.rs`, because the ship-gate had approved a diff of only `data.rs` and `task.rs` and mod.rs is out of scope anyway.
 
 ---
 
