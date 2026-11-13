@@ -63,14 +63,17 @@ I built six `gh search issues` queries and a set of ranking filters from the fit
 
 I installed the voice-guard hook, merged the four upstream rules into my voice guide (reworded so they fit any issue in any repo), and confirmed the hook fires: `gh issue comment --help` was blocked, which is the pass. My first check of the claim draft stopped on the rule against "tested locally" with no command or output, so I rewrote it to name the commit and the result (438 passed, 0 failed), after which it passed (guard log: stop at 2:29, pass at 2:38 on 2026-11-07). I also wrote a roughly 40-line `CLAUDE.local.md` for my taskchampion clone, with the CONTRIBUTING.md rules, the Task and TaskData files behind #613, the build and test commands, and "no AI policy stated". The repo ships no CLAUDE.md or AGENTS.md, so I dropped the import line, and I kept the file out of the PR with `.git/info/exclude`. The comment I already posted on #613 predates the guard and still used the old "ran the test suite" wording, which the guard would block, so I edited that claim comment. I have only run the guard manually on drafts so far, so I have not yet seen it stop a real post.
 
+*Update (2026-11-13):* The guard has now stopped a real post. It blocked my first comment on PR 796 about the Formatting failure, because the draft said `cargo fmt --check` produced a diff and that the other checks passed without showing the command or its output. I added the command and the output, and the comment then went through.
+
 **Unit 7: Wrote a gate manifest, passed the ship-gate on my real branch and opened PR 796**
 
 I wrote a `ship-manifest.md` with the five checks taken from the upstream CI workflows, and the ship-gate ran them on my branch, then ran `pr-precheck` in live mode. It passed on the run I pasted, with all five checks ok and all eight `pr-precheck` checks passing. The earlier semver failure is what led to the thin `Task` wrappers, and I amended and force-pushed the wrapper commit before opening the PR. The gate could not catch the Formatting failure that showed up in upstream CI on `src/server/cloud/mod.rs`, because that file is not in my diff and my local `cargo fmt --check` passes.
 
-**Unit 8: [one line on the tool work]**
+**Unit 8: Wrote a playbook from five merged taskchampion PRs and ran the PR monitor on PR 796**
 
-[2-4 sentences: the PR-monitor and your playbook. What it read, what it
-drafted, what you did with the draft.]
+I wrote my playbook from five recent merged PRs by outside contributors (#795, #779, #762, #757 and #722): djmitche first replied within about 27 hours on every one, and merging took 1 to 14 days, so I set a nudge threshold of 5 quiet days with no reply and 7 after I have answered a review. The monitor read PR 796 on 2026-11-13, saw 1 failing check out of 21 and no comments, and drafted a rebase and fix plan with nothing to post, following my rule not to nudge before day 5. The monitor could not see which check failed and labeled the state BRANCH-STALE, so I read the log myself: it was Formatting on `src/server/cloud/mod.rs`, a file my PR does not touch, and after I updated to Rust 1.100.0 my local `cargo fmt --check` reported the same diff, so a new rustfmt release caused it. I did not follow the fix steps, because a fix commit would have put an unrelated file into my PR, and there's truly nothing to fix on my end.
+
+*Update (2026-11-13):* After the monitor run, I added a rule to the Response rules section of my playbook: when a check fails, I read its log first, then post one short comment saying whether the failure was mine and what I checked or fixed.
 
 ---
 
@@ -246,8 +249,11 @@ Added thin `Task` wrappers that call through to `TaskData` for the 7 methods `ca
 **Maintainer Feedback:**
 
 - 2026-11-13: None yet.
+- 2026-11-13: I posted a comment on the PR explaining that the Formatting failure is in `src/server/cloud/mod.rs`, which my PR does not touch, with the `cargo fmt --check` output from Rust 1.100.0 and a note that I am leaving the PR as it is: https://github.com/GothenburgBitFactory/taskchampion/pull/796#issuecomment-6866533657
 
 **CI:** Every check passes except Formatting. That job fails on `src/server/cloud/mod.rs`, a file my PR does not touch, and `cargo fmt --check` passes locally. The fmt job runs on `stable`, and I think a newer rustfmt than mine changed how it wants block comments laid out, but I have not confirmed that.
+
+**CI update (2026-11-13):** I went back and confirmed the cause. I updated my local toolchain from Rust 1.99.1 to 1.100.0, which was released on 2026-11-12. With 1.100.0, `cargo fmt --check` reports the same diff in `mod.rs` on my branch, so a newer rustfmt changed how it wants that block comment laid out. I changed nothing in the PR.
 
 **Status:** Awaiting review
 
@@ -264,25 +270,22 @@ Added thin `Task` wrappers that call through to `TaskData` for the 7 methods `ca
 
 **Technical Skills Gained**
 
-[What you learned technically, named concretely.]
+I learned how a read-only `Deref<Target = TaskData>` for `Task` lets callers keep using methods that moved to another type, and why I left out `DerefMut`. I learned Rust's narrower visibility levels, `pub(super)` for `Prop` and `pub(in crate::task)` for `get_timestamp`, so the new code could use them without making them public. I learned that `cargo semver-checks` reports a removed method as `inherent_method_missing`, and that a thin wrapper that calls through to the new method keeps the public API the same. I also learned to find the checks a repo runs in its `.github/workflows/` files and to run the same commands locally before opening a PR, and to amend a pushed commit and push it with `--force-with-lease` before any PR is open.
 
 **Challenges Overcome**
 
-[What was hard and how you solved it; point at the real events, the
-Toolkit blocks above are full of them.]
+My first plan moved both the getters and the setters to `TaskData`. I raised on #613 that the setters cannot move, because `Task::set_value` stamps `modified` and `TaskData::update` does not, and the maintainer agreed, so I rebuilt the plan around the 8 getters only. After I deleted `Task`'s getters, `cargo semver-checks` failed on 7 removed methods, and I added thin wrappers (plus one for `get_scheduled`) until it passed. Several commit messages that were first drafted by my commit message generator that uses AI did not match the diff, so I checked each one against the change and rewrote the wrapper message before pushing. After I opened the PR, the Formatting check failed on `src/server/cloud/mod.rs`, a file I did not touch. I traced it to Rust 1.100.0, confirmed it by updating my toolchain, and left the PR alone.
 
 **What I'd Do Differently Next Time**
 
-[Reflection on your process.]
+I would install `cargo-semver-checks` and nightly Rust before writing my plan, because I had to correct the plan and the story after I realized I could run them locally. I would ask the maintainer about the scope at the start, before building a plan around the wrong assumption. I would read each commit message against its diff before accepting it. I would also keep my toolchain up to date when a repo's CI runs on `stable`, so my local checks match CI.
 
 ---
 
 ## Resources Used
 
-[What actually helped, not a reading list. List things this story
-already shows you using: the doc you followed to set the environment
-up, the thread that explained the bug, the person who answered you.
-One real entry beats ten plausible ones.]
-
-- [Link to documentation that helped]
-- [Discussion, issue, or post that helped]
+- [Issue #613 and the maintainer's reply](https://github.com/GothenburgBitFactory/taskchampion/issues/613): the thread that set my scope to getters only and agreed to the thin-wrapper fallback.
+- `CONTRIBUTING.md` and `.github/workflows/checks.yml` in taskchampion: they gave me the five checks I ran locally.
+- [cargo-semver-checks](https://github.com/obi1kenobi/cargo-semver-checks): it caught the removed `Task` methods.
+- [The `Deref` trait in the Rust standard library docs](https://doc.rust-lang.org/std/ops/trait.Deref.html): for the read-only `Deref` impl.
+- Merged PRs #795, #779, #762, #757 and #722 on taskchampion: I used how fast djmitche replied to set my playbook's thresholds.
